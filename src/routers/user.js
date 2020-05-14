@@ -63,12 +63,17 @@ router.patch("/users/:id", (req, res) => {
         return res.status(400).send({ error: "Invalid update" });
     }
 
-    User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    User.findById(req.params.id)
             .then(user => {
                 if (!user) {
                     return res.status(404).send("No such user exists");
                 }
 
+                updates.forEach(update => user[update] = req.body[update]);
+                return user.save();
+            })
+            .then(user => {
+                console.log("Successfully updated user");
                 res.send(user);
             })
             .catch(error => {
