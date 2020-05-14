@@ -5,6 +5,7 @@ const userSchema = new Schema({
     email: {
         type: String,
         required: true,
+        unique: true,
         trim: true
     },
     password: {
@@ -21,4 +22,20 @@ userSchema.pre("save", async function() {
     }
 });
 
-module.exports = model("User", userSchema);
+userSchema.statics.signInWithEmailAndPassword = async (email, password) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new Error("Failed to sign in");
+    }
+
+    const isMatch = await bcryptjs.compare(password, user.password);
+    if (!isMatch) {
+        throw new Error("Failed to sign in");
+    }
+
+    return user;
+};
+
+const User = model("User", userSchema);
+
+module.exports = User;

@@ -19,6 +19,19 @@ router.post("/user", (req, res) => {
             });
 });
 
+router.post("/signin", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.signInWithEmailAndPassword(email, password);
+        console.log("Successfully signed in");
+        res.send(user);
+    }
+    catch (error) {
+        console.log("Failed to sign in", error);
+        res.status(401).send({ error: error.message });
+    }
+});
+
 // Read all users
 router.get("/users", (req, res) => {
     User.find({})
