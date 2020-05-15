@@ -1,30 +1,32 @@
 const { Router } = require("express");
 
 // Local imports
+const auth = require("../middleware/auth");
 const User = require("../models/user");
 
 const router = new Router();
 
-// Create a new user
-router.post("/user", (req, res) => {
-    const user = new User(req.body);
-
-    user.save()
-            .then(user => {
-                res.status(201).send(user);
-            })
-            .catch(error => {
-                console.log("Failed to create user", error);
-                res.status(500).send(error);
-            });
+router.post("/sign-up", async (req, res) => {
+    try {
+        const user = new User(req.body);
+        await user.save();
+        const token = await user.generateAuthToken();
+        console.log("Successfully signed up");
+        res.status(201).send({ user, token });
+    }
+    catch (error) {
+        console.log("Failed to sign up", error);
+        res.status(500).send({ error: error.message });
+    }
 });
 
-router.post("/signin", async (req, res) => {
+router.post("/sign-in", async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.signInWithEmailAndPassword(email, password);
+        const token = await user.generateAuthToken();
         console.log("Successfully signed in");
-        res.send(user);
+        res.send({ user, token });
     }
     catch (error) {
         console.log("Failed to sign in", error);
@@ -32,83 +34,72 @@ router.post("/signin", async (req, res) => {
     }
 });
 
-// Read all users
-router.get("/users", (req, res) => {
-    User.find({})
-            .then(users => {
-                if (users.length === 0) {
-                    return res.status(404).send("No users in database");
-                }
-
-                res.send(users);
-            })
-            .catch(error => {
-                console.log("Failed to read all users", error);
-                res.status(500).send(error);
-            });
+router.post("/sign-out", auth, async (req, res) => {
+    try {
+        const { user, token } = req;
+        user.tokens = user.tokens.filter(each => each.token !== token);
+        await user.save();
+        console.log("Successfully signed out");
+        res.send();
+    }
+    catch (error) {
+        console.log("Failed to sign out", error);
+        res.status(500).send({ error: "Failed to sign out" });
+    }
 });
 
-// Read a specific user by email
-router.get("/users/:email", (req, res) => {
-    const email = req.params.email;
-
-    User.findOne({ email })
-            .then(user => {
-                if (!user) {
-                    return res.status(404).send("No such user exists");
-                }
-
-                res.send(user);
-            })
-            .catch(error => {
-                console.log("Failed to read user", error);
-                res.status(500).send(error);
-            });
+router.post("/sign-out-all", auth, async (req, res) => {
+    try {
+        const { user } = req;
+        user.tokens = [];
+        await user.save();
+        console.log("Successfully signed out from all sessions");
+        res.send();
+    }
+    catch (error) {
+        console.log("Failed to sign out from all sessions", error);
+        res.status(500).send({ error: "Failed to sign out from all sessions" });
+    }
 });
 
-// Update a specific user by id
-router.patch("/users/:id", (req, res) => {
+router.get("/my-account", auth, async (req, res) => {
+    const { user } = req;
+    res.send(user);
+});
+
+router.patch("/my-account", auth, async (req, res) => {
     const updates = Object.keys(req.body);
-    const allowedUpdates = ["email", "password"];
+    const allowedUpdates = ["password"];
     const isValidOperation = updates.every(update => allowedUpdates.includes(update));
 
     if (!isValidOperation) {
         return res.status(400).send({ error: "Invalid update" });
     }
 
-    User.findById(req.params.id)
-            .then(user => {
-                if (!user) {
-                    return res.status(404).send("No such user exists");
-                }
-
-                updates.forEach(update => user[update] = req.body[update]);
-                return user.save();
-            })
-            .then(user => {
-                console.log("Successfully updated user");
-                res.send(user);
-            })
-            .catch(error => {
-                console.log("Failed to update user", error);
-                res.status(500).send(error);
-            });
+    try {
+        const { body, user } = req;
+        updates.forEach(update => user[update] = body[update]);
+        await user.save();
+        console.log("Successfully updated user");
+        res.send(user);
+    }
+    catch (error) {
+        console.log("Failed to update user", error);
+        res.status(500).send({ error: "Failed to update user" });
+    }
 });
 
-// Delete a specific user by id
-router.delete("/users/:id", (req, res) => {
-    User.findByIdAndDelete(req.params.id)
-            .then(user => {
-                if (!user) {
-                    return res.status(404).send("No such user exists");
-                }
-
-                res.send(user);
-            })
-            .catch(error => {
-                console.log("Failed to delete user", error);
-                res.status(500).send(error);
-            });
+router.delete("/my-account", auth, async (req, res) => {
+    try {
+        const { user } = req;
+        await user.remove();
+        console.log("Successfully deleted account");
+        res.send(user);
+    }
+    catch (error) {
+        console.log("Failed to delete account", error);
+        res.status(500).send({ error: "Failed to delete account" });
+    }
 });
 
 module.exports = router;
