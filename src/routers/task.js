@@ -25,14 +25,24 @@ router.post("/task", auth, async (req, res) => {
 router.get("/tasks", auth, async (req, res) => {
     try {
         const { user } = req;
-        const { completed } = req.query;
+        const { completed, limit, skip } = req.query;
 
         const filterOptions = { owner: user._id };
+        const options = {};
+
         if (completed) {
             filterOptions.completed = completed === "true";
         }
 
-        const tasks = await Task.find(filterOptions);
+        if (limit) {
+            options.limit = parseInt(limit);
+        }
+
+        if (skip) {
+            options.skip = parseInt(skip);
+        }
+
+        const tasks = await Task.find(filterOptions, null, options);
         if (tasks.length === 0) {
             return res.status(404).send({ error: "User does not have any tasks" });
         }
