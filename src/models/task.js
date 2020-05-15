@@ -9,6 +9,10 @@ const taskSchema = new Schema({
     completed: {
         type: Boolean,
         default: false
+    },
+    owner: {
+        type: Schema.Types.ObjectId,
+        required: true
     }
 });
 
