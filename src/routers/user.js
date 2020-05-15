@@ -3,6 +3,7 @@ const { Router } = require("express");
 // Local imports
 const auth = require("../middleware/auth");
 const User = require("../models/user");
+const Task = require("../models/task");
 
 const router = new Router();
 
@@ -88,6 +89,8 @@ router.patch("/my-account", auth, async (req, res) => {
 router.delete("/my-account", auth, async (req, res) => {
     try {
         const { user } = req;
+        // Ensures that all tasks associated with the user are deleted as well
+        await Task.deleteMany({ owner: user._id });
         await user.remove();
         res.send(user);
     }
