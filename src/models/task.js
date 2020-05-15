@@ -14,6 +14,8 @@ const taskSchema = new Schema({
         type: Schema.Types.ObjectId,
         required: true
     }
+}, {
+    timestamps: true
 });
 
 module.exports = model("Task", taskSchema);
