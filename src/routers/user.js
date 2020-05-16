@@ -1,9 +1,25 @@
 const { Router } = require("express");
+const multer = require("multer");
 
 // Local imports
 const auth = require("../middleware/auth");
 const User = require("../models/user");
 const Task = require("../models/task");
+
+// Constants
+const MAX_FILE_SIZE = 1000000;
+const UPLOAD = multer({
+    limits: {
+        fileSize: MAX_FILE_SIZE
+    },
+    fileFilter(req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+            cb(new Error("Please select an image"));
+        }
+
+        cb(undefined, true);
+    }
+});
 
 const router = new Router();
 
@@ -97,6 +113,62 @@ router.delete("/my-account", auth, async (req, res) => {
     catch (error) {
         console.log("Failed to delete account", error);
         res.status(500).send({ error: "Failed to delete account" });
+    }
+});
+
+router.post("/my-account/profile-picture", auth, UPLOAD.single("picture"),
+        async (req, res, next) => {
+            const { file, user } = req;
+
+            if (!file) {
+                return next(new Error("Please select a file"));
+            }
+
+            try {
+                user.profilePicture = file.buffer;
+                await user.save();
+                res.send(user);
+            }
+            catch (error) {
+                console.log("Failed to upload profile picture", error);
+                res.status(500).send({ error: "Failed to upload profile picture" });
+            }
+        }, (error, req, res, next) => {
+            res.status(400).send({ error: error.message });
+        });
+
+router.get("/users/:id/profile-picture", async (req, res) => {
+    try {
+        const _id = req.params.id;
+        const user = await User.findById(_id);
+
+        if (!user) {
+            return res.status(404).send({ error: "No such user exists" });
+        }
+
+        if (!user.profilePicture) {
+            return res.status(404).send({ error: "User does not have a profile picture" });
+        }
+
+        res.set("Content-Type", "image/jpg").send(user.profilePicture);
+    }
+    catch (error) {
+        console.log("Failed to get profile picture", error);
+        res.status(500).send({ error: "Failed to get profile picture" });
+    }
+});
+
+router.delete("/my-account/profile-picture", auth, async (req, res) => {
+    const { user } = req;
+
+    try {
+        user.profilePicture = undefined;
+        await user.save();
+        res.send(user);
+    }
+    catch (error) {
+        console.log("Failed to delete profile picture", error);
+        res.status(500).send({ error: "Failed to delete profile picture" });
     }
 });
 
