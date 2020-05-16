@@ -2,6 +2,8 @@ const { model, Schema } = require("mongoose");
 const bcryptjs = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+
 const userSchema = new Schema({
     email: {
         type: String,
@@ -59,7 +61,7 @@ userSchema.methods.toJSON = function() {
 
 userSchema.methods.generateAuthToken = async function() {
     const user = this;
-    const token = jwt.sign({ userID: user._id.toString() }, "SECRETKEY");
+    const token = jwt.sign({ userID: user._id.toString() }, JWT_SECRET_KEY);
 
     // Save token to the array
     user.tokens.push({ token });

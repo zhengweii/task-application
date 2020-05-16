@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-const url = "YOUR_URL";
+const MONGODB_URL = process.env.MONGODB_URL;
 
-mongoose.connect(url, {
+mongoose.connect(MONGODB_URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
