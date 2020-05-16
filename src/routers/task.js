@@ -25,7 +25,7 @@ router.post("/task", auth, async (req, res) => {
 router.get("/tasks", auth, async (req, res) => {
     try {
         const { user } = req;
-        const { completed, limit, skip } = req.query;
+        const { completed, limit, skip, sortBy } = req.query;
 
         const filterOptions = { owner: user._id };
         const options = {};
@@ -40,6 +40,11 @@ router.get("/tasks", auth, async (req, res) => {
 
         if (skip) {
             options.skip = parseInt(skip);
+        }
+
+        if (sortBy) {
+            const split = sortBy.split(":");
+            options.sort = { [split[0]]: split[1] === "desc" ? -1 : 1 };
         }
 
         const tasks = await Task.find(filterOptions, null, options);
